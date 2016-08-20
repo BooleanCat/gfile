@@ -17,7 +17,7 @@ Usage
 Below is an example usage of `gfile.Buffer` to check that a logfile has had a
 specific message written to it.
 
-```
+```go
 ...
 Context("when writing to a log file", func() {
     var buffer *gfile.Buffer
