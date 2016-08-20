@@ -44,6 +44,7 @@ func (buffer *Buffer) Close() {
 }
 
 func (buffer *Buffer) start() {
+	defer close(buffer.stopChan)
 	var index int64
 
 	for {
@@ -52,7 +53,6 @@ func (buffer *Buffer) start() {
 		case <-time.After(time.Millisecond * 50):
 			read, err := buffer.file.ReadAt(bytesBuffer, index)
 			if err != nil && err != io.EOF {
-				close(buffer.stopChan)
 				return
 			}
 			if read > 0 {
@@ -60,7 +60,6 @@ func (buffer *Buffer) start() {
 				buffer.buffer.Write(bytesBuffer)
 			}
 		case <-buffer.stopChan:
-			close(buffer.stopChan)
 			return
 		}
 	}
