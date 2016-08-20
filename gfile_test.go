@@ -62,6 +62,16 @@ var _ = Describe("gfile", func() {
 				It("reads the contents of the file", func() {
 					Eventually(buffer).Should(gbytes.Say(lines))
 				})
+
+				It("doesn't re-read the earlier file contents", func() {
+					Eventually(buffer).Should(gbytes.Say("This is a line of text"))
+					Expect(buffer).NotTo(gbytes.Say("This is a line of text"))
+				})
+
+				It("reads contents in sequence", func() {
+					Eventually(buffer).Should(gbytes.Say("This is a line of text"))
+					Eventually(buffer).Should(gbytes.Say("\nand this is another"))
+				})
 			})
 
 			Context("when the target file is continuously written to", func() {
@@ -86,13 +96,23 @@ var _ = Describe("gfile", func() {
 				})
 			})
 
-			Context("when the target file is written to asynchonously", func() {
+			Context("when the target file is written to asynchronously", func() {
+				var syncChan chan bool
+
 				BeforeEach(func() {
+					syncChan = make(chan bool)
+
 					go func() {
 						time.Sleep(time.Millisecond * 250)
 						_, fileErr := file.WriteString("I came from a go func!")
 						Expect(fileErr).NotTo(HaveOccurred())
+						syncChan <- true
 					}()
+				})
+
+				AfterEach(func() {
+					<-syncChan
+					close(syncChan)
 				})
 
 				It("reads the new contents", func() {
