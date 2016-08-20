@@ -11,6 +11,8 @@ import (
 	"github.com/onsi/gomega/gbytes"
 )
 
+var Say = gbytes.Say
+
 var _ = Describe("gfile", func() {
 	Describe("#NewBuffer", func() {
 		Context("when the target file exists", func() {
@@ -47,7 +49,7 @@ var _ = Describe("gfile", func() {
 				})
 
 				It("reads the contents of the file", func() {
-					Eventually(buffer).Should(gbytes.Say("This is a line of text"))
+					Eventually(buffer).Should(Say("This is a line of text"))
 				})
 			})
 
@@ -60,17 +62,17 @@ var _ = Describe("gfile", func() {
 				})
 
 				It("reads the contents of the file", func() {
-					Eventually(buffer).Should(gbytes.Say(lines))
+					Eventually(buffer).Should(Say(lines))
 				})
 
 				It("doesn't re-read the earlier file contents", func() {
-					Eventually(buffer).Should(gbytes.Say("This is a line of text"))
-					Expect(buffer).NotTo(gbytes.Say("This is a line of text"))
+					Eventually(buffer).Should(Say("This is a line of text"))
+					Expect(buffer).NotTo(Say("This is a line of text"))
 				})
 
 				It("reads contents in sequence", func() {
-					Eventually(buffer).Should(gbytes.Say("This is a line of text"))
-					Eventually(buffer).Should(gbytes.Say("\nand this is another"))
+					Eventually(buffer).Should(Say("This is a line of text"))
+					Eventually(buffer).Should(Say("\nand this is another"))
 				})
 			})
 
@@ -85,14 +87,14 @@ var _ = Describe("gfile", func() {
 
 					_, err = file.WriteString("An initial line\n")
 					Expect(err).NotTo(HaveOccurred())
-					Eventually(longLivedBuffer).Should(gbytes.Say("An initial line\n"))
+					Eventually(longLivedBuffer).Should(Say("An initial line\n"))
 
 					_, err = file.WriteString("And then another line")
 					Expect(err).NotTo(HaveOccurred())
 				})
 
 				It("reads the new contents", func() {
-					Eventually(longLivedBuffer).Should(gbytes.Say("And then another line"))
+					Eventually(longLivedBuffer).Should(Say("And then another line"))
 				})
 			})
 
@@ -116,7 +118,7 @@ var _ = Describe("gfile", func() {
 				})
 
 				It("reads the new contents", func() {
-					Eventually(buffer).Should(gbytes.Say("I came from a go func!"))
+					Eventually(buffer).Should(Say("I came from a go func!"))
 				})
 			})
 		})
