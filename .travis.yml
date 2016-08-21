@@ -4,4 +4,5 @@ install:
 - go get github.com/onsi/ginkgo
 - go get github.com/onsi/gomega
 script:
+- ls ${GOPATH}/bin
 - ${GOPATH}/bin/ginkgo -v
