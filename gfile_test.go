@@ -14,14 +14,39 @@ import (
 var Say = gbytes.Say
 
 var _ = Describe("gfile", func() {
-	Describe("#NewBuffer", func() {
-		Context("when the target file exists", func() {
-			var (
-				file   *os.File
-				buffer *gfile.Buffer
-				err    error
-			)
+	var (
+		err    error
+		file   *os.File
+		buffer *gfile.Buffer
+	)
 
+	Describe("#NewBuffer", func() {
+		BeforeEach(func() {
+			var fileErr error
+			file, fileErr = ioutil.TempFile("/tmp", "gfile")
+			Expect(fileErr).NotTo(HaveOccurred())
+			file.Close()
+		})
+
+		AfterEach(func() {
+			bufErr := buffer.Close()
+			Expect(bufErr).NotTo(HaveOccurred())
+			os.Remove(file.Name())
+		})
+
+		JustBeforeEach(func() {
+			buffer, err = gfile.NewBuffer(file.Name())
+		})
+
+		Context("when the target file exists", func() {
+			It("does not return an error", func() {
+				Expect(err).NotTo(HaveOccurred())
+			})
+		})
+	})
+
+	Describe("Buffer", func() {
+		Context("when the target file exists", func() {
 			BeforeEach(func() {
 				var fileErr error
 				file, fileErr = ioutil.TempFile("/tmp", "gfile")
@@ -121,17 +146,44 @@ var _ = Describe("gfile", func() {
 					Eventually(buffer).Should(Say("I came from a go func!"))
 				})
 			})
+
+			Describe("#Close", func() {
+				var closeErr error
+
+				JustBeforeEach(func() {
+					closeErr = buffer.Close()
+				})
+
+				It("does not return an error", func() {
+					Expect(closeErr).NotTo(HaveOccurred())
+				})
+
+				Context("when closed repeatedly", func() {
+					JustBeforeEach(func() {
+						Expect(closeErr).NotTo(HaveOccurred())
+						closeErr = buffer.Close()
+					})
+
+					It("does not return an error", func() {
+						Expect(closeErr).NotTo(HaveOccurred())
+					})
+				})
+			})
 		})
 
 		Context("when the target file does not exist", func() {
-			var err error
+			var badBuffer *gfile.Buffer
 
 			JustBeforeEach(func() {
-				_, err = gfile.NewBuffer("/foo/bar/baz")
+				badBuffer, err = gfile.NewBuffer("/foo/bar/baz")
 			})
 
 			It("returns an error", func() {
 				Expect(err).To(HaveOccurred())
+			})
+
+			It("returns nil", func() {
+				Expect(badBuffer).To(BeNil())
 			})
 		})
 	})

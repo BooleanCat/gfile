@@ -13,6 +13,7 @@ type Buffer struct {
 	buffer   *gbytes.Buffer
 	stopChan chan bool
 	file     *os.File
+	closed   bool
 }
 
 //NewBuffer returns a *gbytes.Buffer over the file at `path`
@@ -20,7 +21,7 @@ func NewBuffer(path string) (*Buffer, error) {
 	buffer := new(Buffer)
 
 	var err error
-	buffer.file, err = os.Open(path)
+	buffer.file, err = os.OpenFile(path, os.O_RDONLY, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -38,13 +39,24 @@ func (buffer *Buffer) Buffer() *gbytes.Buffer {
 }
 
 //Close stops the buffer from scanning the target file
-func (buffer *Buffer) Close() {
-	buffer.stopChan <- true
-	buffer.file.Close()
+func (buffer *Buffer) Close() (err error) {
+	if !buffer.closed {
+		buffer.stopChan <- true
+	}
+	err = buffer.file.Close()
+	if err != nil {
+		if err.Error() == "invalid argument" {
+			err = nil
+		}
+	}
+	return
 }
 
 func (buffer *Buffer) start() {
-	defer close(buffer.stopChan)
+	defer func() {
+		close(buffer.stopChan)
+		buffer.closed = true
+	}()
 	var index int64
 
 	for {
