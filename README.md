@@ -1,6 +1,8 @@
 gfile
 =====
 
+[![Build Status](https://travis-ci.org/BooleanCat/gfile.svg?branch=master)](https://travis-ci.org/BooleanCat/gfile)
+
 gfile is an implementation of [gbytes](http://github.com/onsi/gomega)'
 BufferProvider interface that allows you to make assertions on the contents of
 files as they are updated using the [ginkgo](http://github.com/onsi/ginkgo)
