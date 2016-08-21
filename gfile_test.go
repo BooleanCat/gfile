@@ -65,7 +65,7 @@ var _ = Describe("gfile", func() {
 	Describe("Buffer", func() {
 		BeforeEach(func() {
 			var fileErr error
-			file, fileErr = ioutil.TempFile("/tmp", "gfile")
+			file, fileErr = ioutil.TempFile("", "gfile")
 			Expect(fileErr).NotTo(HaveOccurred())
 		})
 
