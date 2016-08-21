@@ -185,5 +185,11 @@ var _ = Describe("gfile", func() {
 				})
 			})
 		})
+
+		Describe("#Buffer", func() {
+			It("is a gbytes.Buffer", func() {
+				Expect(buffer.Buffer()).To(BeAssignableToTypeOf(gbytes.NewBuffer()))
+			})
+		})
 	})
 })
