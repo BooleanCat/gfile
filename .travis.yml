@@ -1,5 +1,8 @@
 language: go
 go: 1.7
+os:
+- linux
+- osx
 install:
 - go get github.com/onsi/ginkgo/ginkgo
 - go get github.com/onsi/gomega
