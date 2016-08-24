@@ -3,6 +3,7 @@ package gfile
 import (
 	"io"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/onsi/gomega/gbytes"
@@ -10,10 +11,11 @@ import (
 
 //Buffer ...
 type Buffer struct {
-	buffer   *gbytes.Buffer
-	stopChan chan bool
-	file     *os.File
-	closed   bool
+	buffer      *gbytes.Buffer
+	stopChan    chan bool
+	file        *os.File
+	closed      bool
+	closedMutex *sync.Mutex
 }
 
 //NewBuffer returns a *gbytes.Buffer over the file at `path`
@@ -27,6 +29,7 @@ func NewBuffer(path string) (*Buffer, error) {
 	}
 
 	buffer.stopChan = make(chan bool)
+	buffer.closedMutex = new(sync.Mutex)
 	buffer.buffer = gbytes.NewBuffer()
 	go buffer.start()
 
@@ -40,14 +43,17 @@ func (buffer *Buffer) Buffer() *gbytes.Buffer {
 
 //Close stops the buffer from scanning the target file
 func (buffer *Buffer) Close() (err error) {
-	if !buffer.closed {
+	buffer.closedMutex.Lock()
+	closed := buffer.closed
+	buffer.closedMutex.Unlock()
+
+	if !closed {
 		buffer.stopChan <- true
 	}
+
 	err = buffer.file.Close()
-	if err != nil {
-		if err.Error() == "invalid argument" {
-			err = nil
-		}
+	if err != nil && err.Error() == "invalid argument" {
+		err = nil
 	}
 	return
 }
@@ -55,7 +61,9 @@ func (buffer *Buffer) Close() (err error) {
 func (buffer *Buffer) start() {
 	defer func() {
 		close(buffer.stopChan)
+		buffer.closedMutex.Lock()
 		buffer.closed = true
+		buffer.closedMutex.Unlock()
 	}()
 	var index int64
 
