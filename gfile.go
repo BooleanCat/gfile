@@ -3,7 +3,7 @@ package gfile
 import (
 	"io"
 	"os"
-	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/onsi/gomega/gbytes"
@@ -11,11 +11,10 @@ import (
 
 //Buffer ...
 type Buffer struct {
-	buffer      *gbytes.Buffer
-	stopChan    chan bool
-	file        *os.File
-	closed      bool
-	closedMutex *sync.Mutex
+	buffer   *gbytes.Buffer
+	stopChan chan bool
+	file     *os.File
+	closed   int32
 }
 
 //NewBuffer returns a *gbytes.Buffer over the file at `path`
@@ -29,7 +28,6 @@ func NewBuffer(path string) (*Buffer, error) {
 	}
 
 	buffer.stopChan = make(chan bool)
-	buffer.closedMutex = new(sync.Mutex)
 	buffer.buffer = gbytes.NewBuffer()
 	go buffer.start()
 
@@ -43,11 +41,7 @@ func (buffer *Buffer) Buffer() *gbytes.Buffer {
 
 //Close stops the buffer from scanning the target file
 func (buffer *Buffer) Close() (err error) {
-	buffer.closedMutex.Lock()
-	closed := buffer.closed
-	buffer.closedMutex.Unlock()
-
-	if !closed {
+	if atomic.CompareAndSwapInt32(&buffer.closed, 0, 1) {
 		buffer.stopChan <- true
 	}
 
@@ -59,12 +53,7 @@ func (buffer *Buffer) Close() (err error) {
 }
 
 func (buffer *Buffer) start() {
-	defer func() {
-		close(buffer.stopChan)
-		buffer.closedMutex.Lock()
-		buffer.closed = true
-		buffer.closedMutex.Unlock()
-	}()
+	defer close(buffer.stopChan)
 	var index int64
 
 	for {
