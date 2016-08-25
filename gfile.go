@@ -54,18 +54,16 @@ func (buffer *Buffer) Close() (err error) {
 
 func (buffer *Buffer) start() {
 	defer close(buffer.stopChan)
-	var index int64
 
 	for {
 		bytesBuffer := make([]byte, 10000)
 		select {
 		case <-time.After(time.Millisecond * 50):
-			read, err := buffer.file.ReadAt(bytesBuffer, index)
+			read, err := buffer.file.Read(bytesBuffer)
 			if err != nil && err != io.EOF {
 				return
 			}
 			if read > 0 {
-				index = index + int64(read)
 				buffer.buffer.Write(bytesBuffer)
 			}
 		case <-buffer.stopChan:
