@@ -163,6 +163,22 @@ var _ = Describe("gfile", func() {
 			})
 		})
 
+		Context("when there are multiple buffers", func() {
+			BeforeEach(func() {
+				secondBuffer, err := gfile.NewBuffer(file.Name())
+				Expect(err).NotTo(HaveOccurred())
+
+				_, err = file.WriteString("Some line of text")
+				Expect(err).NotTo(HaveOccurred())
+
+				Eventually(secondBuffer).Should(Say("Some line of text"))
+			})
+
+			It("can read independently", func() {
+				Eventually(buffer).Should(Say("Some line of text"))
+			})
+		})
+
 		Describe("#Close", func() {
 			var closeErr error
 
