@@ -64,7 +64,9 @@ func (buffer *Buffer) start() {
 				return
 			}
 			if read > 0 {
-				buffer.buffer.Write(bytesBuffer)
+				if _, err = buffer.buffer.Write(bytesBuffer); err != nil {
+					panic(err.Error())
+				}
 			}
 		case <-buffer.stopChan:
 			return
