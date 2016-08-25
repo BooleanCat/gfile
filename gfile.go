@@ -61,7 +61,7 @@ func (buffer *Buffer) start() {
 		case <-time.After(time.Millisecond * 50):
 			read, err := buffer.file.Read(bytesBuffer)
 			if err != nil && err != io.EOF {
-				return
+				panic(err.Error())
 			}
 			if read > 0 {
 				if _, err = buffer.buffer.Write(bytesBuffer); err != nil {
