@@ -22,14 +22,19 @@ specific message written to it.
 ```go
 ...
 Context("when writing to a log file", func() {
-    var buffer *gfile.Buffer
+    var (
+        buffer *gfile.Buffer
+        err    error
+    )
 
     BeforeEach(func() {
-        buffer = gfile.NewBuffer("/tmp/foo")
+        buffer, err = gfile.NewBuffer("/tmp/foo")
+        Expect(err).NotTo(HaveOccurred())
     })
 
     AfterEach(func() {
-        buffer.Close()
+        err := buffer.Close()
+        Expect(err).NotTo(HaveOccurred())
     })
 
     It("can be read back", func() {
