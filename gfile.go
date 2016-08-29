@@ -2,6 +2,7 @@ package gfile
 
 import (
 	"io"
+	"io/ioutil"
 	"os"
 	"sync/atomic"
 	"time"
@@ -21,17 +22,24 @@ type Buffer struct {
 func NewBuffer(path string) (*Buffer, error) {
 	buffer := new(Buffer)
 
-	var err error
-	buffer.file, err = os.OpenFile(path, os.O_RDONLY, 0)
-	if err != nil {
+	if err := buffer.initialise(path); err != nil {
 		return nil, err
+	}
+	go buffer.start()
+
+	return buffer, nil
+}
+
+func (buffer *Buffer) initialise(path string) error {
+	err := buffer.openFile(path)
+	if err != nil {
+		return err
 	}
 
 	buffer.stopChan = make(chan bool)
 	buffer.buffer = gbytes.NewBuffer()
-	go buffer.start()
 
-	return buffer, nil
+	return nil
 }
 
 //Buffer satisfies the interface gbytes.BufferProvider
@@ -40,14 +48,31 @@ func (buffer *Buffer) Buffer() *gbytes.Buffer {
 }
 
 //Close stops the buffer from scanning the target file
-func (buffer *Buffer) Close() (err error) {
+func (buffer *Buffer) Close() error {
 	if atomic.CompareAndSwapInt32(&buffer.closed, 0, 1) {
 		buffer.stopChan <- true
 	}
 
+	return buffer.closeFile()
+}
+
+func (buffer *Buffer) openFile(path string) (err error) {
+	buffer.file, err = os.OpenFile(path, os.O_RDONLY, 0)
+	return
+}
+
+func (buffer *Buffer) closeFile() (err error) {
 	err = buffer.file.Close()
 	if err != nil && err.Error() == "invalid argument" {
 		err = nil
+	}
+	return
+}
+
+func (buffer *Buffer) readFile() (bytesBuffer []byte) {
+	bytesBuffer, err := ioutil.ReadAll(buffer.file)
+	if err != nil && err != io.EOF {
+		panic(err.Error())
 	}
 	return
 }
@@ -56,20 +81,21 @@ func (buffer *Buffer) start() {
 	defer close(buffer.stopChan)
 
 	for {
-		bytesBuffer := make([]byte, 10000)
 		select {
 		case <-time.After(time.Millisecond * 50):
-			read, err := buffer.file.Read(bytesBuffer)
-			if err != nil && err != io.EOF {
-				panic(err.Error())
-			}
-			if read > 0 {
-				if _, err = buffer.buffer.Write(bytesBuffer); err != nil {
-					panic(err.Error())
-				}
-			}
+			buffer.update()
 		case <-buffer.stopChan:
 			return
 		}
+	}
+}
+
+func (buffer *Buffer) update() {
+	buffer.write(buffer.readFile())
+}
+
+func (buffer *Buffer) write(bytesBuffer []byte) {
+	if _, err := buffer.buffer.Write(bytesBuffer); err != nil {
+		panic(err.Error())
 	}
 }
